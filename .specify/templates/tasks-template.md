@@ -8,7 +8,7 @@ description: "Task list template for feature implementation"
 **Input**: Design documents from `/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Tests**: MANDATORY per Constitution Principle IX. Every Domain model and Application use-case interactor MUST have fast unit tests running without Spring context. Presentation controllers and Infrastructure repositories must have slice/integration tests.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -20,10 +20,13 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- **Domain Layer**: `src/main/java/com/gohar/platform/seckit/domain/` (entities, value objects, domain services)
+- **Application Layer**: `src/main/java/com/gohar/platform/seckit/application/` (use-case interactors, ports)
+- **Infrastructure Layer**: `src/main/java/com/gohar/platform/seckit/infrastructure/` (JPA repositories, adapters, config)
+- **Presentation Layer**: `src/main/java/com/gohar/platform/seckit/presentation/` (REST controllers, records, advice)
+- **Database Migrations**: `src/main/resources/db/migration/` (Flyway scripts)
+- **Unit Tests**: `src/test/java/com/gohar/platform/seckit/unit/` (no Spring context)
+- **Slice & Integration Tests**: `src/test/java/com/gohar/platform/seckit/slice/`, `src/test/java/com/gohar/platform/seckit/integration/`
 
 <!-- 
   ============================================================================
@@ -79,21 +82,24 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 1 (MANDATORY) ⚠️
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+> **NOTE: Write isolated unit tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T010 [P] [US1] Unit test for Domain model invariants in src/test/java/.../unit/domain/
+- [ ] T011 [P] [US1] Unit test for Use-Case Interactor (mocking ports) in src/test/java/.../unit/application/
+- [ ] T012 [P] [US1] Slice test for REST Controller in src/test/java/.../slice/presentation/
+- [ ] T013 [P] [US1] Slice/Integration test for Persistence/Port implementation in src/test/java/.../slice/infrastructure/
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
-- [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
-- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T016 [US1] Add validation and error handling
-- [ ] T017 [US1] Add logging for user story 1 operations
+- [ ] T014 [P] [US1] Create Domain Entity / Value Object records in src/main/java/.../domain/
+- [ ] T015 [P] [US1] Define Inbound/Outbound Port interfaces in src/main/java/.../application/ports/
+- [ ] T016 [US1] Implement Application Use-Case Interactor in src/main/java/.../application/usecases/
+- [ ] T017 [US1] Implement Infrastructure Port Adapter / Spring Data JPA repository in src/main/java/.../infrastructure/
+- [ ] T018 [US1] Create Presentation Request/Response records and REST Controller in src/main/java/.../presentation/
+- [ ] T019 [US1] Add Jakarta Bean Validation annotations and verify RFC 9457 Problem Details error mapping
+- [ ] T020 [US1] Add structured logging context (traceId, spanId) and OpenAPI 3.1 documentation annotations
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -105,17 +111,18 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T021 [P] [US2] Unit test for Domain / Use-Case in src/test/java/.../unit/
+- [ ] T022 [P] [US2] Slice / Integration test in src/test/java/.../slice/
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Create [Entity] model in src/models/[entity].py
-- [ ] T021 [US2] Implement [Service] in src/services/[service].py
-- [ ] T022 [US2] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T023 [US2] Integrate with User Story 1 components (if needed)
+- [ ] T023 [P] [US2] Create Domain models in src/main/java/.../domain/
+- [ ] T024 [US2] Implement Use Case in src/main/java/.../application/usecases/
+- [ ] T025 [US2] Implement Infrastructure adapters in src/main/java/.../infrastructure/
+- [ ] T026 [US2] Implement Presentation endpoints in src/main/java/.../presentation/
+- [ ] T027 [US2] Integrate with User Story 1 components (if needed)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -127,16 +134,16 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T028 [P] [US3] Unit tests for Domain and Application use case in src/test/java/.../unit/
+- [ ] T029 [P] [US3] Integration test in src/test/java/.../integration/
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
-- [ ] T027 [US3] Implement [Service] in src/services/[service].py
-- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T030 [P] [US3] Create Domain models in src/main/java/.../domain/
+- [ ] T031 [US3] Implement Use Case in src/main/java/.../application/usecases/
+- [ ] T032 [US3] Implement Infrastructure and Presentation endpoints in src/main/java/.../
 
 **Checkpoint**: All user stories should now be independently functional
 
