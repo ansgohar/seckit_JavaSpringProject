@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "Create a specification for a User Registration feature using the following requirements. User Story 1, priority P1: As a visitor to this application, I want to register a new account using my name, email address, and password, so that I can start using the application."
 
+## Clarifications
+
+### Session 2026-10-19
+
+- Q: How should the registration endpoint communicate registration success and field-level validation failures to client applications? → A: Standard REST JSON: Return 201 Created with user metadata on success; return 400/422 with RFC 9457 Problem Details containing field-level errors on validation failure.
+- Q: Should password validation enforce character composition rules (numbers, uppercase, symbols) or adhere strictly to the minimum 8-character length requirement? → A: Length-only: Enforce minimum 8 characters of any printable characters (per current requirements and NIST SP 800-63B guidance).
+- Q: What maximum length limits should be enforced on registration input fields to prevent Denial-of-Service and database overflow? → A: Industry Standards: Name ≤ 100 characters, Email ≤ 254 characters (RFC 5321), Password ≤ 128 characters.
+- Q: How should the service protect the public registration endpoint against automated spam or abuse? → A: In-service rate limiting: Apply a basic rate limit (e.g., 5 registration attempts per IP per minute), returning HTTP 429 Too Many Requests if exceeded.
+- Q: What should be the initial status of a newly created user account upon successful registration? → A: Immediately Active: Set account status to ACTIVE upon creation (aligned with email verification being out of scope).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Visitor Account Registration (Priority: P1)
@@ -13,10 +23,10 @@ As a visitor to this application, I want to register a new account using my name
 
 **Why this priority**: Account registration is the foundational entry point for user onboarding and identity creation. Without registration, users cannot create credentials or access authenticated features within the application.
 
-**Independent Test**: Can be fully tested by completing and submitting the registration form with a valid name, email address, and password (≥ 8 characters), then verifying that:
-1. A new user account record is created.
-2. The user is redirected to the Login page.
-3. A success confirmation message is displayed to the user.
+**Independent Test**: Can be fully tested by sending a valid registration request with a name, email address, and password (≥ 8 characters), then verifying that:
+1. A new user account record is created in the database.
+2. The endpoint returns an HTTP 201 Created response with user account metadata.
+3. The response payload facilitates client redirection to the Login page and display of a success confirmation message.
 
 **Acceptance Scenarios**:
 
@@ -24,8 +34,8 @@ As a visitor to this application, I want to register a new account using my name
    **Given** a visitor enters a valid name, a valid email address, and a password with at least eight characters,  
    **When** they submit the registration form,  
    **Then** a new user account is created,  
-   **And** they are redirected to the Login page,  
-   **And** they see a message confirming that registration completed successfully.
+   **And** the service responds with HTTP 201 Created containing user metadata and a Location header,  
+   **And** the client is directed to the Login page displaying a message confirming that registration completed successfully.
 
 2. **Scenario 2: Duplicate email address**  
    **Given** an email address is already registered in the system,  
@@ -65,7 +75,8 @@ As a visitor to this application, I want to register a new account using my name
 - **Case-Insensitive Email Comparison**: When a visitor registers with an email address differing only by case from an existing account (e.g., `User@Example.com` vs `user@example.com`), the submission is rejected as a duplicate email.
 - **Concurrent Registrations with Identical Email**: When two visitors attempt to register with the same email address simultaneously, the system guarantees uniqueness such that only one registration succeeds and the other is rejected with a duplicate email error.
 - **Special Characters and Spaces in Passwords**: Passwords containing unicode characters, symbols, or spaces are accepted as valid provided they meet the minimum length requirement of eight characters.
-- **Extremely Long Inputs**: Submissions with excessively long name or email strings (e.g., exceeding standard field boundaries) are rejected with clear validation messages rather than causing unhandled system failures.
+- **Extremely Long Inputs**: Submissions exceeding defined field boundaries (name > 100 characters, email > 254 characters, password > 128 characters) are rejected with clear RFC 9457 validation messages rather than causing unhandled buffer or database failures.
+- **Rate Limit Exhaustion**: When a client IP exceeds the permitted registration rate limit (5 attempts per minute), subsequent registration submissions are immediately rejected with HTTP 429 Too Many Requests and an RFC 9457 response containing a retry guidance.
 
 ---
 
@@ -74,16 +85,17 @@ As a visitor to this application, I want to register a new account using my name
 ### Functional Requirements
 
 - **FR-001**: The system MUST allow visitors to submit registration data containing a full name, an email address, and a password.
-- **FR-002**: The system MUST require a non-blank name and reject submissions where the name is missing or contains only whitespace.
-- **FR-003**: The system MUST require an email address and reject submissions where the email address is missing or does not conform to standard email formatting rules.
-- **FR-004**: The system MUST require a password and reject submissions where the password length is less than eight characters.
+- **FR-002**: The system MUST require a non-blank name and reject submissions where the name is missing, contains only whitespace, or exceeds 100 characters.
+- **FR-003**: The system MUST require an email address and reject submissions where the email address is missing, does not conform to standard email formatting rules, or exceeds 254 characters (RFC 5321).
+- **FR-004**: The system MUST require a password and reject submissions where the password length is less than 8 characters or exceeds 128 characters; any printable UTF-8 characters (including letters, digits, spaces, and symbols) are valid without arbitrary composition restrictions.
 - **FR-005**: The system MUST enforce email address uniqueness across all user accounts in a case-insensitive manner.
 - **FR-006**: When an email address is already associated with an account, the system MUST reject the registration and provide a clear error message indicating that the email address is already in use.
 - **FR-007**: The system MUST never store, display, or log passwords in plain text under any circumstances; all stored credentials must be securely one-way hashed.
-- **FR-008**: Upon successful registration, the system MUST persist the new user account and redirect the visitor to the Login page with a confirmation message.
-- **FR-009**: When registration validation fails, the system MUST display contextual error messages next to or directly associated with each invalid or missing field.
-- **FR-010**: Upon validation failure, the system MUST preserve previously entered values for non-password fields so visitors do not have to retype valid input.
-- **FR-011**: Upon validation failure, the system MUST always clear the password field.
+- **FR-008**: Upon successful registration, the system MUST persist the new user account in an `ACTIVE` status and return an HTTP 201 Created response containing user account metadata (`id`, `name`, `email`, `status`, `createdAt`) and a Location header pointing to the created resource, allowing client applications to redirect to the Login page with a success confirmation.
+- **FR-009**: When registration validation fails, the system MUST return an RFC 9457 Problem Details error response (`application/problem+json`) with HTTP status 400 Bad Request or 422 Unprocessable Entity, containing structured field-level violation entries (`field`, `message`) corresponding to each invalid or missing input.
+- **FR-010**: Upon validation failure, client applications MUST preserve previously entered values for non-password fields based on submitted input so visitors do not have to retype valid input.
+- **FR-011**: Upon validation failure, the password field MUST always be cleared and never echoed back in error responses.
+- **FR-012**: The system MUST enforce in-service rate limiting on the registration endpoint (maximum 5 registration attempts per client IP per minute) and return HTTP 429 Too Many Requests with RFC 9457 Problem Details when the threshold is exceeded.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -110,6 +122,7 @@ As a visitor to this application, I want to register a new account using my name
 - **SC-003**: Zero plain-text passwords appear in persistent storage, audit records, or application logs across 100% of registration events.
 - **SC-004**: 100% of validation rejections display field-specific error messages while retaining valid non-password inputs and clearing the password field.
 - **SC-005**: Visitors can complete a first-time registration submission in under 60 seconds on average.
+- **SC-006**: 100% of registration attempts exceeding 5 requests per minute from a single IP are throttled with HTTP 429 Too Many Requests.
 
 ---
 
