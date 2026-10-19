@@ -17,21 +17,32 @@
   the iteration process.
 -->
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Java 25 (LTS)  
+**Primary Dependencies**: Spring Boot 4.1.1, Spring Framework 7.0.9, Spring Security (OAuth2 Resource Server / JWT), Spring Data JPA, Actuator, Micrometer  
+**Storage**: PostgreSQL (Production), Embedded PostgreSQL / Testcontainers (Test)  
+**Testing**: JUnit 5, Mockito (no Spring context for unit tests), @WebMvcTest, @DataJpaTest, @SpringBootTest  
+**Target Platform**: Linux server / Container (JVM 25)  
+**Project Type**: REST Microservice (Clean Architecture)  
+**Performance Goals**: Bounded latency, N+1 query prevention, explicit thread/connection pool sizing  
+**Constraints**: Stateless JWT auth, RFC 9457 Problem Details error responses, Flyway migrations, structured JSON logs  
+**Scale/Scope**: Single bounded context microservice
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] **Clean Architecture Strict Layering**: Source code organized into 4 layers: Domain, Application, Infrastructure, Presentation. Inner layers have ZERO knowledge or dependencies on outer layers.
+- [ ] **Domain Layer Isolation**: Domain entities, value objects, and domain services contain NO framework annotations (`@Entity`, `@Service`, `@Repository`, `@Autowired`). Invariants validated within domain models.
+- [ ] **Single-Method Use Cases**: Every use case in the Application layer is a dedicated class with a single public method (e.g., `execute(...)`).
+- [ ] **Presentation Simplicity**: REST controllers only translate HTTP inputs to use-case calls and serialize responses. No business or persistence logic in controllers.
+- [ ] **Dependency Injection**: Constructor injection exclusively used. Zero field injection (`@Autowired` on member fields). Dependencies in Domain/Application declared through ports (interfaces).
+- [ ] **DTO & Record Discipline**: All request/response DTOs and value objects are Java records. JPA entities are NEVER exposed in API responses or accepted in request bodies. Explicit mappers used (no reflection mappers).
+- [ ] **RESTful API Standards**: REST semantics, versioned URL paths (`/api/v1/`), RFC 9457 Problem Details for all error responses via `@RestControllerAdvice`, OpenAPI 3.1 annotations on all endpoints, strict pagination on collection queries.
+- [ ] **Persistence & Schema Migrations**: Spring Data JPA used exclusively in Infrastructure. Schema changes managed via Flyway versioned migrations. Lazy loading by default; N+1 queries prevented via fetch joins / entity graphs.
+- [ ] **Zero-Trust Security**: Stateless OAuth2 Resource Server validating JWT on every request. Deny-by-default access control. Passwords hashed with BCrypt. Sensitive data redacted from logs/responses.
+- [ ] **Resilience**: Explicit connection/read timeouts on outbound calls/DB queries. Circuit breakers (Resilience4j) on external dependencies. Thread pools and connection pools explicitly sized.
+- [ ] **Observability & Logging**: Actuator endpoints (`/actuator/health`, `/prometheus`), structured JSON logging to stdout with `traceId`/`spanId` and entity IDs. No `System.out`/`System.err`. Custom Micrometer metrics.
+- [ ] **Testing Discipline**: Unit tests for Domain and Application run with JUnit 5 + Mockito without Spring context. Slice tests (`@WebMvcTest`, `@DataJpaTest`) and integration tests (`@SpringBootTest` with embedded PostgreSQL) verify behavior and query counts.
 
 ## Project Structure
 
@@ -47,52 +58,28 @@ specs/[###-feature]/
 └── tasks.md             # Phase 2 output (/speckit-tasks command - NOT created by /speckit-plan)
 ```
 
-### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
+### Source Code (Clean Architecture layout)
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+src/main/java/com/gohar/platform/seckit/
+├── domain/                  # Entities, Value Objects, Domain Services (zero framework deps)
+├── application/             # Use-Case Interactors (1 class per use case), Ports (interfaces)
+├── infrastructure/          # Port implementations: JPA Repositories, Adapters, Config
+└── presentation/            # REST Controllers, Request/Response Records, ControllerAdvice (RFC 9457)
 
-tests/
-├── contract/
-├── integration/
-└── unit/
+src/main/resources/
+├── db/migration/            # Flyway versioned SQL migrations (V1__...sql)
+├── application.yml          # Base configuration
+├── application-dev.yml      # Local dev configuration
+└── application-prod.yml     # Production configuration
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+src/test/java/com/gohar/platform/seckit/
+├── unit/                    # JUnit 5 & Mockito (no Spring context)
+├── slice/                   # @WebMvcTest & @DataJpaTest slice tests
+└── integration/             # @SpringBootTest integration tests
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Clean Architecture four-layer layout as mandated by Constitution Principle I.
 
 ## Complexity Tracking
 
