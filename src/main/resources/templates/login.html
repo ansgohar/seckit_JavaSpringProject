@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Platform</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1 class="auth-title">Welcome Back</h1>
+            <p class="auth-subtitle">Sign in to your account to continue</p>
+        </div>
+
+        <!-- Success Flash Message (e.g. from registration redirect) -->
+        <div th:if="${successMessage}" class="alert-banner alert-success" id="successBanner">
+            <span>✓</span>
+            <span th:text="${successMessage}">Registration successful! You may now sign in.</span>
+        </div>
+
+        <!-- Authentication Error Alert -->
+        <div th:if="${param.error}" class="alert-banner alert-error" id="errorBanner">
+            <span>⚠</span>
+            <span>Invalid email or password. Please try again.</span>
+        </div>
+
+        <form th:action="@{/login}" method="post">
+            <div class="form-group">
+                <label for="username" class="form-label">Email Address</label>
+                <input type="email" id="username" name="username" class="form-input" placeholder="you@example.com" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn-primary" id="signInButton">Sign In</button>
+        </form>
+
+        <div class="auth-footer">
+            Don't have an account? <a th:href="@{/register}" id="registerLink">Create one now</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

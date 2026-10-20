@@ -19,9 +19,9 @@
 
 **Purpose**: Initialize project dependencies, configuration properties, and Clean Architecture directory layout.
 
-- [ ] T001 Add feature dependencies to `pom.xml` (`spring-boot-starter-thymeleaf`, `spring-boot-starter-validation`, `spring-boot-starter-security`, `spring-boot-starter-data-jpa`, `postgresql`, `flyway-core`, `flyway-database-postgresql`, and test database dependencies `h2` configured in PostgreSQL compatibility mode `MODE=PostgreSQL` or `testcontainers-postgresql`)
-- [ ] T002 [P] Configure Thymeleaf, Flyway, JPA, and Actuator properties in `src/main/resources/application.yml`
-- [ ] T003 [P] Create Clean Architecture package directory structure under `src/main/java/com/gohar/platform/seckit/` (`domain/model`, `domain/exception`, `application/usecases`, `application/command`, `application/result`, `application/ports`, `infrastructure/persistence`, `infrastructure/security`, `infrastructure/ratelimit`, `presentation/form`, `presentation/controller`)
+- [X] T001 Add feature dependencies to `pom.xml` (`spring-boot-starter-thymeleaf`, `spring-boot-starter-validation`, `spring-boot-starter-security`, `spring-boot-starter-data-jpa`, `postgresql`, `flyway-core`, `flyway-database-postgresql`, and test database dependencies `h2` configured in PostgreSQL compatibility mode `MODE=PostgreSQL` or `testcontainers-postgresql`)
+- [X] T002 [P] Configure Thymeleaf, Flyway, JPA, and Actuator properties in `src/main/resources/application.yml`
+- [X] T003 [P] Create Clean Architecture package directory structure under `src/main/java/com/gohar/platform/seckit/` (`domain/model`, `domain/exception`, `application/usecases`, `application/command`, `application/result`, `application/ports`, `infrastructure/persistence`, `infrastructure/security`, `infrastructure/ratelimit`, `presentation/form`, `presentation/controller`)
 
 ---
 
@@ -31,15 +31,15 @@
 
 **⚠️ CRITICAL**: No user story implementation work can begin until this foundational phase is complete.
 
-- [ ] T004 Create Flyway migration script `V1__create_users_table.sql` in `src/main/resources/db/migration/` defining the `users` table and unique index on `LOWER(email)`
-- [ ] T005 [P] Define `UserRepositoryPort` interface in `src/main/java/com/gohar/platform/seckit/application/ports/UserRepositoryPort.java`
-- [ ] T006 [P] Define `PasswordEncoderPort` interface in `src/main/java/com/gohar/platform/seckit/application/ports/PasswordEncoderPort.java`
-- [ ] T007 [P] Implement `BCryptPasswordEncoderAdapter` in `src/main/java/com/gohar/platform/seckit/infrastructure/security/BCryptPasswordEncoderAdapter.java` implementing `PasswordEncoderPort` with BCrypt cost factor 12
-- [ ] T008 [P] Configure Spring Security in `src/main/java/com/gohar/platform/seckit/infrastructure/security/SecurityConfiguration.java` permitting unauthenticated access to `/register`, `/login`, `/actuator/**`, and static CSS resources
-- [ ] T009 [P] Implement `RegistrationRateLimitFilter` in `src/main/java/com/gohar/platform/seckit/infrastructure/ratelimit/RegistrationRateLimitFilter.java` with accompanying unit test in `src/test/java/com/gohar/platform/seckit/unit/infrastructure/RegistrationRateLimitFilterTest.java` enforcing 5 registration attempts per client IP per minute and asserting HTTP 429 response on subsequent requests
-- [ ] T010 Create base stylesheet `styles.css` in `src/main/resources/static/css/styles.css` for form layouts, input states, validation error highlights, and alert banners
-- [ ] T011 [P] Create login landing template `login.html` in `src/main/resources/templates/login.html` displaying success flash banner and login form stub
-- [ ] T012 [P] Implement `LoginController` in `src/main/java/com/gohar/platform/seckit/presentation/controller/LoginController.java` handling `GET /login`
+- [X] T004 Create Flyway migration script `V1__create_users_table.sql` in `src/main/resources/db/migration/` defining the `users` table and unique index on `LOWER(email)`
+- [X] T005 [P] Define `UserRepositoryPort` interface in `src/main/java/com/gohar/platform/seckit/application/ports/UserRepositoryPort.java`
+- [X] T006 [P] Define `PasswordEncoderPort` interface in `src/main/java/com/gohar/platform/seckit/application/ports/PasswordEncoderPort.java`
+- [X] T007 [P] Implement `BCryptPasswordEncoderAdapter` in `src/main/java/com/gohar/platform/seckit/infrastructure/security/BCryptPasswordEncoderAdapter.java` implementing `PasswordEncoderPort` with BCrypt cost factor 12
+- [X] T008 [P] Configure Spring Security in `src/main/java/com/gohar/platform/seckit/infrastructure/security/SecurityConfiguration.java` permitting unauthenticated access to `/register`, `/login`, `/actuator/**`, and static CSS resources
+- [X] T009 [P] Implement `RegistrationRateLimitFilter` in `src/main/java/com/gohar/platform/seckit/infrastructure/ratelimit/RegistrationRateLimitFilter.java` with accompanying unit test in `src/test/java/com/gohar/platform/seckit/unit/infrastructure/RegistrationRateLimitFilterTest.java` enforcing 5 registration attempts per client IP per minute and asserting HTTP 429 response on subsequent requests
+- [X] T010 Create base stylesheet `styles.css` in `src/main/resources/static/css/styles.css` for form layouts, input states, validation error highlights, and alert banners
+- [X] T011 [P] Create login landing template `login.html` in `src/main/resources/templates/login.html` displaying success flash banner and login form stub
+- [X] T012 [P] Implement `LoginController` in `src/main/java/com/gohar/platform/seckit/presentation/controller/LoginController.java` handling `GET /login`
 
 **Checkpoint**: Foundation ready — database schema, ports, security baseline, and landing view ready for User Story 1.
 
@@ -59,39 +59,39 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US1] Unit test for `Email` value object in `src/test/java/com/gohar/platform/seckit/unit/domain/EmailTest.java` verifying lowercase normalization, whitespace trimming, regex validation, and length ≤ 254 characters
-- [ ] T014 [P] [US1] Unit test for `User` aggregate root in `src/test/java/com/gohar/platform/seckit/unit/domain/UserTest.java` verifying name length ≤ 100, password length 8..128, and default `ACTIVE` status
-- [ ] T015 [P] [US1] Unit test for `RegisterUserUseCase` in `src/test/java/com/gohar/platform/seckit/unit/application/RegisterUserUseCaseTest.java` using Mockito (no Spring context) verifying successful registration, duplicate email rejection (`DuplicateEmailException`), and port delegation
-- [ ] T016 [P] [US1] MVC slice test for `RegistrationController` in `src/test/java/com/gohar/platform/seckit/slice/presentation/RegistrationControllerTest.java` using `@WebMvcTest` verifying GET `/register` view, POST `/register` validation rejections, field error binding, password wiping, and PRG redirect to `/login`
-- [ ] T017 [P] [US1] Data JPA slice test for `SpringDataUserRepository` in `src/test/java/com/gohar/platform/seckit/slice/infrastructure/SpringDataUserRepositoryTest.java` using `@DataJpaTest` with PostgreSQL dialect compatibility (`MODE=PostgreSQL`) verifying entity mapping, case-insensitive `existsByEmail` queries, and unique index enforcement on `LOWER(email)`
+- [X] T013 [P] [US1] Unit test for `Email` value object in `src/test/java/com/gohar/platform/seckit/unit/domain/EmailTest.java` verifying lowercase normalization, whitespace trimming, regex validation, and length ≤ 254 characters
+- [X] T014 [P] [US1] Unit test for `User` aggregate root in `src/test/java/com/gohar/platform/seckit/unit/domain/UserTest.java` verifying name length ≤ 100, password length 8..128, and default `ACTIVE` status
+- [X] T015 [P] [US1] Unit test for `RegisterUserUseCase` in `src/test/java/com/gohar/platform/seckit/unit/application/RegisterUserUseCaseTest.java` using Mockito (no Spring context) verifying successful registration, duplicate email rejection (`DuplicateEmailException`), and port delegation
+- [X] T016 [P] [US1] MVC slice test for `RegistrationController` in `src/test/java/com/gohar/platform/seckit/slice/presentation/RegistrationControllerTest.java` using `@WebMvcTest` verifying GET `/register` view, POST `/register` validation rejections, field error binding, password wiping, and PRG redirect to `/login`
+- [X] T017 [P] [US1] Data JPA slice test for `SpringDataUserRepository` in `src/test/java/com/gohar/platform/seckit/slice/infrastructure/SpringDataUserRepositoryTest.java` using `@DataJpaTest` with PostgreSQL dialect compatibility (`MODE=PostgreSQL`) verifying entity mapping, case-insensitive `existsByEmail` queries, and unique index enforcement on `LOWER(email)`
 
 ### Domain & Application Implementation for User Story 1
 
-- [ ] T018 [P] [US1] Create `UserId` value object in `src/main/java/com/gohar/platform/seckit/domain/model/UserId.java` encapsulating UUID
-- [ ] T019 [P] [US1] Create `Email` value object in `src/main/java/com/gohar/platform/seckit/domain/model/Email.java` enforcing lowercase normalization, whitespace trimming, and RFC 5322 validation
-- [ ] T020 [P] [US1] Create `HashedPassword` value object in `src/main/java/com/gohar/platform/seckit/domain/model/HashedPassword.java` encapsulating validated BCrypt hash
-- [ ] T021 [P] [US1] Create `UserStatus` enum in `src/main/java/com/gohar/platform/seckit/domain/model/UserStatus.java` with `ACTIVE`
-- [ ] T022 [US1] Create `User` aggregate root entity in `src/main/java/com/gohar/platform/seckit/domain/model/User.java` (depends on T018, T019, T020, T021)
-- [ ] T023 [P] [US1] Create domain exceptions `DuplicateEmailException.java` and `DomainValidationException.java` in `src/main/java/com/gohar/platform/seckit/domain/exception/`
-- [ ] T024 [P] [US1] Create `RegisterUserCommand` record in `src/main/java/com/gohar/platform/seckit/application/command/RegisterUserCommand.java`
-- [ ] T025 [P] [US1] Create `RegisterUserResult` record in `src/main/java/com/gohar/platform/seckit/application/result/RegisterUserResult.java`
-- [ ] T026 [US1] Implement `RegisterUserUseCase` in `src/main/java/com/gohar/platform/seckit/application/usecases/RegisterUserUseCase.java` executing single public method `execute(...)` with application-level email uniqueness check and password hashing (depends on T022, T023, T024, T025, T005, T006)
+- [X] T018 [P] [US1] Create `UserId` value object in `src/main/java/com/gohar/platform/seckit/domain/model/UserId.java` encapsulating UUID
+- [X] T019 [P] [US1] Create `Email` value object in `src/main/java/com/gohar/platform/seckit/domain/model/Email.java` enforcing lowercase normalization, whitespace trimming, and RFC 5322 validation
+- [X] T020 [P] [US1] Create `HashedPassword` value object in `src/main/java/com/gohar/platform/seckit/domain/model/HashedPassword.java` encapsulating validated BCrypt hash
+- [X] T021 [P] [US1] Create `UserStatus` enum in `src/main/java/com/gohar/platform/seckit/domain/model/UserStatus.java` with `ACTIVE`
+- [X] T022 [US1] Create `User` aggregate root entity in `src/main/java/com/gohar/platform/seckit/domain/model/User.java` (depends on T018, T019, T020, T021)
+- [X] T023 [P] [US1] Create domain exceptions `DuplicateEmailException.java` and `DomainValidationException.java` in `src/main/java/com/gohar/platform/seckit/domain/exception/`
+- [X] T024 [P] [US1] Create `RegisterUserCommand` record in `src/main/java/com/gohar/platform/seckit/application/command/RegisterUserCommand.java`
+- [X] T025 [P] [US1] Create `RegisterUserResult` record in `src/main/java/com/gohar/platform/seckit/application/result/RegisterUserResult.java`
+- [X] T026 [US1] Implement `RegisterUserUseCase` in `src/main/java/com/gohar/platform/seckit/application/usecases/RegisterUserUseCase.java` executing single public method `execute(...)` with application-level email uniqueness check and password hashing (depends on T022, T023, T024, T025, T005, T006)
 
 ### Infrastructure Implementation for User Story 1
 
-- [ ] T027 [P] [US1] Create `UserJpaEntity` in `src/main/java/com/gohar/platform/seckit/infrastructure/persistence/UserJpaEntity.java` mapped to `users` table
-- [ ] T028 [P] [US1] Create `SpringDataUserRepository` interface in `src/main/java/com/gohar/platform/seckit/infrastructure/persistence/SpringDataUserRepository.java` with `boolean existsByEmail(String email)`
-- [ ] T029 [US1] Implement `UserRepositoryAdapter` in `src/main/java/com/gohar/platform/seckit/infrastructure/persistence/UserRepositoryAdapter.java` implementing `UserRepositoryPort` and mapping between domain `User` and `UserJpaEntity` (depends on T027, T028)
+- [X] T027 [P] [US1] Create `UserJpaEntity` in `src/main/java/com/gohar/platform/seckit/infrastructure/persistence/UserJpaEntity.java` mapped to `users` table
+- [X] T028 [P] [US1] Create `SpringDataUserRepository` interface in `src/main/java/com/gohar/platform/seckit/infrastructure/persistence/SpringDataUserRepository.java` with `boolean existsByEmail(String email)`
+- [X] T029 [US1] Implement `UserRepositoryAdapter` in `src/main/java/com/gohar/platform/seckit/infrastructure/persistence/UserRepositoryAdapter.java` implementing `UserRepositoryPort` and mapping between domain `User` and `UserJpaEntity` (depends on T027, T028)
 
 ### Presentation Implementation for User Story 1
 
-- [ ] T030 [P] [US1] Create `RegistrationForm` backing bean in `src/main/java/com/gohar/platform/seckit/presentation/form/RegistrationForm.java` with Jakarta Bean Validation annotations (`@NotBlank`, `@Size`, `@Email`) and `clearPassword()` helper
-- [ ] T031 [US1] Implement `RegistrationController` in `src/main/java/com/gohar/platform/seckit/presentation/controller/RegistrationController.java` handling `GET /register` and `POST /register`, binding `BindingResult`, clearing passwords on error, and returning `redirect:/login` with `RedirectAttributes` (depends on T026, T030)
-- [ ] T032 [US1] Create Thymeleaf registration template `register.html` in `src/main/resources/templates/register.html` rendering form fields for name, email, password, and contextual field errors using `th:errors` (depends on T010)
+- [X] T030 [P] [US1] Create `RegistrationForm` backing bean in `src/main/java/com/gohar/platform/seckit/presentation/form/RegistrationForm.java` with Jakarta Bean Validation annotations (`@NotBlank`, `@Size`, `@Email`) and `clearPassword()` helper
+- [X] T031 [US1] Implement `RegistrationController` in `src/main/java/com/gohar/platform/seckit/presentation/controller/RegistrationController.java` handling `GET /register` and `POST /register`, binding `BindingResult`, clearing passwords on error, and returning `redirect:/login` with `RedirectAttributes` (depends on T026, T030)
+- [X] T032 [US1] Create Thymeleaf registration template `register.html` in `src/main/resources/templates/register.html` rendering form fields for name, email, password, and contextual field errors using `th:errors` (depends on T010)
 
 ### End-to-End Integration Verification for User Story 1
 
-- [ ] T033 [US1] Implement end-to-end integration test `UserRegistrationIntegrationTest` in `src/test/java/com/gohar/platform/seckit/integration/UserRegistrationIntegrationTest.java` using `@SpringBootTest` and MockMvc with PostgreSQL test database parity verifying full form submission, DB persistence, BCrypt hash verification, duplicate email rejection, PRG flash message, and rate limit exhaustion returning HTTP 429 (depends on T026, T029, T031, T032)
+- [X] T033 [US1] Implement end-to-end integration test `UserRegistrationIntegrationTest` in `src/test/java/com/gohar/platform/seckit/integration/UserRegistrationIntegrationTest.java` using `@SpringBootTest` and MockMvc with PostgreSQL test database parity verifying full form submission, DB persistence, BCrypt hash verification, duplicate email rejection, PRG flash message, and rate limit exhaustion returning HTTP 429 (depends on T026, T029, T031, T032)
 
 **Checkpoint**: At this point, User Story 1 is fully functional, styled, verified, and testable end-to-end!
 
@@ -101,10 +101,10 @@
 
 **Purpose**: System observability, security hardening, documentation validation, and full regression verification.
 
-- [ ] T034 [P] Verify Actuator health and Prometheus metrics endpoints in `src/main/resources/application.yml`
-- [ ] T035 [P] Audit structured logging in `RegistrationController` and `RegisterUserUseCase` ensuring passwords and sensitive credentials are never logged
-- [ ] T036 Execute manual verification walkthrough against running application per instructions in `specs/001-user-registration/quickstart.md`
-- [ ] T037 Run complete build and test suite (`./mvnw clean verify`) ensuring all unit, slice, and integration tests pass
+- [X] T034 [P] Verify Actuator health and Prometheus metrics endpoints in `src/main/resources/application.yml`
+- [X] T035 [P] Audit structured logging in `RegistrationController` and `RegisterUserUseCase` ensuring passwords and sensitive credentials are never logged
+- [X] T036 Execute manual verification walkthrough against running application per instructions in `specs/001-user-registration/quickstart.md`
+- [X] T037 Run complete build and test suite (`./mvnw clean verify`) ensuring all unit, slice, and integration tests pass
 
 ---
 
