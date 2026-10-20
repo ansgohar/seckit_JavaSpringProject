@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Your Account - Platform</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1 class="auth-title">Create Account</h1>
+            <p class="auth-subtitle">Get started by entering your information below</p>
+        </div>
+
+        <form th:action="@{/register}" th:object="${registrationForm}" method="post" id="registrationForm" novalidate>
+            <!-- Global Validation Errors (if any) -->
+            <div th:if="${#fields.hasGlobalErrors()}" class="alert-banner alert-error" id="globalErrorBanner">
+                <span>⚠</span>
+                <span th:each="err : ${#fields.globalErrors()}" th:text="${err}">Global validation error.</span>
+            </div>
+            <!-- Full Name Field -->
+            <div class="form-group">
+                <label for="name" class="form-label">Full Name</label>
+                <input type="text"
+                       id="name"
+                       th:field="*{name}"
+                       class="form-input"
+                       th:classappend="${#fields.hasErrors('name')} ? 'is-invalid' : ''"
+                       placeholder="Jane Doe"
+                       autofocus>
+                <span th:if="${#fields.hasErrors('name')}"
+                      th:errors="*{name}"
+                      class="invalid-feedback"
+                      id="nameError">Name error</span>
+            </div>
+
+            <!-- Email Address Field -->
+            <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email"
+                       id="email"
+                       th:field="*{email}"
+                       class="form-input"
+                       th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''"
+                       placeholder="jane.doe@example.com">
+                <span th:if="${#fields.hasErrors('email')}"
+                      th:errors="*{email}"
+                      class="invalid-feedback"
+                      id="emailError">Email error</span>
+            </div>
+
+            <!-- Password Field -->
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password"
+                       id="password"
+                       th:field="*{password}"
+                       class="form-input"
+                       th:classappend="${#fields.hasErrors('password')} ? 'is-invalid' : ''"
+                       placeholder="At least 8 characters">
+                <span th:if="${#fields.hasErrors('password')}"
+                      th:errors="*{password}"
+                      class="invalid-feedback"
+                      id="passwordError">Password error</span>
+            </div>
+
+            <button type="submit" class="btn-primary" id="submitButton">Create Account</button>
+        </form>
+
+        <div class="auth-footer">
+            Already have an account? <a th:href="@{/login}" id="loginLink">Sign in</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>
