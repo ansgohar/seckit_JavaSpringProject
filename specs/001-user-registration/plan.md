@@ -19,7 +19,7 @@ Validation failures redisplay `/register` with field-level error messages while 
 
 **Language/Version**: Java 25 (LTS)  
 **Primary Dependencies**: Spring Boot 4.1.1, Spring Framework 7.0.9, Spring MVC, Thymeleaf (`spring-boot-starter-thymeleaf`), Spring Security (`BCryptPasswordEncoder`), Jakarta Bean Validation (`spring-boot-starter-validation`), Spring Data JPA, Flyway  
-**Storage**: PostgreSQL (Production), H2 / Embedded PostgreSQL (Test)  
+**Storage**: PostgreSQL (Production), H2 (PostgreSQL compatibility mode) / Embedded PostgreSQL / Testcontainers (Test)  
 **Testing**: JUnit 5, Mockito (fast unit tests without Spring context), `@WebMvcTest` (MVC slice tests), `@DataJpaTest` (JPA repository slice tests), `@SpringBootTest` (end-to-end integration tests)  
 **Target Platform**: Linux server / Docker Container (JVM 25)  
 **Project Type**: Spring MVC Web Application & Microservice (Clean Architecture)  

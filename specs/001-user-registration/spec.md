@@ -9,7 +9,7 @@
 
 ### Session 2026-10-19
 
-- Q: How should the registration endpoint communicate registration success and field-level validation failures to client applications? → A: Standard REST JSON: Return 201 Created with user metadata on success; return 400/422 with RFC 9457 Problem Details containing field-level errors on validation failure.
+- Q: How should the registration endpoint communicate registration success and field-level validation failures to client applications? → A: Dual Interface Support: Primary web interface is a Spring MVC + Thymeleaf web form utilizing the Post/Redirect/Get pattern (redirecting to /login with flash success message) with field-level errors displayed adjacent to form inputs; any API endpoints return 201 Created on success and RFC 9457 Problem Details on validation failure.
 - Q: Should password validation enforce character composition rules (numbers, uppercase, symbols) or adhere strictly to the minimum 8-character length requirement? → A: Length-only: Enforce minimum 8 characters of any printable characters (per current requirements and NIST SP 800-63B guidance).
 - Q: What maximum length limits should be enforced on registration input fields to prevent Denial-of-Service and database overflow? → A: Industry Standards: Name ≤ 100 characters, Email ≤ 254 characters (RFC 5321), Password ≤ 128 characters.
 - Q: How should the service protect the public registration endpoint against automated spam or abuse? → A: In-service rate limiting: Apply a basic rate limit (e.g., 5 registration attempts per IP per minute), returning HTTP 429 Too Many Requests if exceeded.
@@ -23,48 +23,52 @@ As a visitor to this application, I want to register a new account using my name
 
 **Why this priority**: Account registration is the foundational entry point for user onboarding and identity creation. Without registration, users cannot create credentials or access authenticated features within the application.
 
-**Independent Test**: Can be fully tested by sending a valid registration request with a name, email address, and password (≥ 8 characters), then verifying that:
-1. A new user account record is created in the database.
-2. The endpoint returns an HTTP 201 Created response with user account metadata.
-3. The response payload facilitates client redirection to the Login page and display of a success confirmation message.
+**Independent Test**: Can be fully tested by submitting a valid registration request on the web form with a name, email address, and password (≥ 8 characters), then verifying that:
+1. A new user account record is created in the database in `ACTIVE` status with BCrypt password hash.
+2. The user is redirected to the Login page via the Post/Redirect/Get (PRG) pattern.
+3. A success confirmation message is displayed on the Login page.
 
 **Acceptance Scenarios**:
 
 1. **Scenario 1: Successful registration**  
    **Given** a visitor enters a valid name, a valid email address, and a password with at least eight characters,  
    **When** they submit the registration form,  
-   **Then** a new user account is created,  
-   **And** the service responds with HTTP 201 Created containing user metadata and a Location header,  
-   **And** the client is directed to the Login page displaying a message confirming that registration completed successfully.
+   **Then** a new user account is created in `ACTIVE` status,  
+   **And** they are redirected to the Login page using the Post/Redirect/Get pattern,  
+   **And** they see a message confirming that registration completed successfully.
 
 2. **Scenario 2: Duplicate email address**  
    **Given** an email address is already registered in the system,  
    **When** another visitor submits the registration form using the same email address,  
    **Then** registration is rejected,  
-   **And** an error message explains that the email address is already in use.
+   **And** the registration form is redisplayed explaining that the email address is already in use,  
+   **And** the submitted name and email are retained, and the password field is empty.
 
 3. **Scenario 3: Missing required fields**  
    **Given** a visitor submits the registration form with one or more required fields missing (name, email, or password),  
    **When** the registration request is processed,  
    **Then** registration is rejected,  
-   **And** each missing field displays an appropriate validation error message indicating the field is required.
+   **And** the registration form is redisplayed with each missing field displaying an appropriate validation error message indicating the field is required,  
+   **And** any entered valid fields retain their values and the password field is empty.
 
 4. **Scenario 4: Invalid email address format**  
    **Given** a visitor enters an email address in an invalid format (e.g., missing `@`, missing domain, or malformed syntax),  
    **When** they submit the registration form,  
    **Then** registration is rejected,  
-   **And** the email field displays an appropriate validation error message indicating the email format is invalid.
+   **And** the registration form is redisplayed with the email field displaying an appropriate validation error message indicating the email format is invalid,  
+   **And** the password field is empty.
 
 5. **Scenario 5: Password too short**  
    **Given** a visitor enters a password shorter than eight characters,  
    **When** they submit the registration form,  
    **Then** registration is rejected,  
-   **And** the password field displays an appropriate validation error message stating that passwords must contain at least eight characters.
+   **And** the registration form is redisplayed with the password field displaying an appropriate validation error message stating that passwords must contain at least eight characters,  
+   **And** the password field is empty.
 
 6. **Scenario 6: Registration validation failure and form state retention**  
    **Given** a visitor submits a registration form that contains validation errors,  
    **When** the registration form is redisplayed,  
-   **Then** all valid fields retain their previously entered values,  
+   **Then** all valid non-password fields retain their previously entered values,  
    **And** the password field is cleared and empty.
 
 ---
@@ -91,8 +95,8 @@ As a visitor to this application, I want to register a new account using my name
 - **FR-005**: The system MUST enforce email address uniqueness across all user accounts in a case-insensitive manner.
 - **FR-006**: When an email address is already associated with an account, the system MUST reject the registration and provide a clear error message indicating that the email address is already in use.
 - **FR-007**: The system MUST never store, display, or log passwords in plain text under any circumstances; all stored credentials must be securely one-way hashed.
-- **FR-008**: Upon successful registration, the system MUST persist the new user account in an `ACTIVE` status and return an HTTP 201 Created response containing user account metadata (`id`, `name`, `email`, `status`, `createdAt`) and a Location header pointing to the created resource, allowing client applications to redirect to the Login page with a success confirmation.
-- **FR-009**: When registration validation fails, the system MUST return an RFC 9457 Problem Details error response (`application/problem+json`) with HTTP status 400 Bad Request or 422 Unprocessable Entity, containing structured field-level violation entries (`field`, `message`) corresponding to each invalid or missing input.
+- **FR-008**: Upon successful registration, the system MUST persist the new user account in an `ACTIVE` status and redirect the visitor to the Login page using the Post/Redirect/Get pattern with a success confirmation message (returning HTTP 201 Created with Location header for direct API submissions).
+- **FR-009**: When registration validation fails, the web form MUST be redisplayed with contextual error messages rendered adjacent to each invalid or missing input field (and return an RFC 9457 Problem Details error response with HTTP status 400 or 422 for API submissions).
 - **FR-010**: Upon validation failure, client applications MUST preserve previously entered values for non-password fields based on submitted input so visitors do not have to retype valid input.
 - **FR-011**: Upon validation failure, the password field MUST always be cleared and never echoed back in error responses.
 - **FR-012**: The system MUST enforce in-service rate limiting on the registration endpoint (maximum 5 registration attempts per client IP per minute) and return HTTP 429 Too Many Requests with RFC 9457 Problem Details when the threshold is exceeded.
