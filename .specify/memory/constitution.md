@@ -165,7 +165,7 @@ Testing must guarantee architectural compliance, functional correctness, and reg
   * `application.yml`: Defines base defaults, port bindings, Actuator configurations, and common settings.
   * `application-local.yml`: Configured for developer machines with PostgreSQL, local service endpoints, and developer-friendly logging.
   * `application-dev.yml`: Configured for the AWS development environment with PostgreSQL and developer-friendly logging.
-  * `application-test.yml`: Configured for the AWS test environment, automated build pipelines, and integration test runs.
+  * `application-test.yml`: Configured for the AWS test environment. Automated integration tests use the `test` profile and connect to embedded PostgreSQL for database tests and embedded Redis for cache tests.
   * `application-stage.yml`: Configured for the AWS staging environment with production-like integrations and externalized secrets.
   * `application-prod.yml`: Configured for the AWS production environment with hardened security, pool sizing, and externalized secrets.
 * **Zero Secrets in VCS**: Passwords, private keys, API tokens, and production connection strings must NEVER be committed to version control under any circumstances.
@@ -197,4 +197,4 @@ Every feature, enhancement, and bugfix must satisfy the following automated qual
   * **PATCH**: Phrasing clarifications, typo corrections, reference updates, and non-semantic refinements.
 * **Compliance Auditing**: Every Pull Request must include a Constitution Compliance check verifying that new code strictly complies with all principles defined herein.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-19 | **Last Amended**: 2026-10-19
+**Version**: 2.0.0 | **Ratified**: 2026-10-19 | **Last Amended**: 2026-10-20
