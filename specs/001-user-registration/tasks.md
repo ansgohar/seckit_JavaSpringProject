@@ -19,7 +19,7 @@
 
 **Purpose**: Initialize project dependencies, configuration properties, and Clean Architecture directory layout.
 
-- [ ] T001 Add feature dependencies to `pom.xml` (`spring-boot-starter-thymeleaf`, `spring-boot-starter-validation`, `spring-boot-starter-security`, `spring-boot-starter-data-jpa`, `postgresql`, `flyway-core`, `flyway-database-postgresql`, `h2`)
+- [ ] T001 Add feature dependencies to `pom.xml` (`spring-boot-starter-thymeleaf`, `spring-boot-starter-validation`, `spring-boot-starter-security`, `spring-boot-starter-data-jpa`, `postgresql`, `flyway-core`, `flyway-database-postgresql`, and test database dependencies `h2` configured in PostgreSQL compatibility mode `MODE=PostgreSQL` or `testcontainers-postgresql`)
 - [ ] T002 [P] Configure Thymeleaf, Flyway, JPA, and Actuator properties in `src/main/resources/application.yml`
 - [ ] T003 [P] Create Clean Architecture package directory structure under `src/main/java/com/gohar/platform/seckit/` (`domain/model`, `domain/exception`, `application/usecases`, `application/command`, `application/result`, `application/ports`, `infrastructure/persistence`, `infrastructure/security`, `infrastructure/ratelimit`, `presentation/form`, `presentation/controller`)
 
@@ -36,7 +36,7 @@
 - [ ] T006 [P] Define `PasswordEncoderPort` interface in `src/main/java/com/gohar/platform/seckit/application/ports/PasswordEncoderPort.java`
 - [ ] T007 [P] Implement `BCryptPasswordEncoderAdapter` in `src/main/java/com/gohar/platform/seckit/infrastructure/security/BCryptPasswordEncoderAdapter.java` implementing `PasswordEncoderPort` with BCrypt cost factor 12
 - [ ] T008 [P] Configure Spring Security in `src/main/java/com/gohar/platform/seckit/infrastructure/security/SecurityConfiguration.java` permitting unauthenticated access to `/register`, `/login`, `/actuator/**`, and static CSS resources
-- [ ] T009 [P] Implement `RegistrationRateLimitFilter` in `src/main/java/com/gohar/platform/seckit/infrastructure/ratelimit/RegistrationRateLimitFilter.java` enforcing 5 registration attempts per client IP per minute with HTTP 429 response
+- [ ] T009 [P] Implement `RegistrationRateLimitFilter` in `src/main/java/com/gohar/platform/seckit/infrastructure/ratelimit/RegistrationRateLimitFilter.java` with accompanying unit test in `src/test/java/com/gohar/platform/seckit/unit/infrastructure/RegistrationRateLimitFilterTest.java` enforcing 5 registration attempts per client IP per minute and asserting HTTP 429 response on subsequent requests
 - [ ] T010 Create base stylesheet `styles.css` in `src/main/resources/static/css/styles.css` for form layouts, input states, validation error highlights, and alert banners
 - [ ] T011 [P] Create login landing template `login.html` in `src/main/resources/templates/login.html` displaying success flash banner and login form stub
 - [ ] T012 [P] Implement `LoginController` in `src/main/java/com/gohar/platform/seckit/presentation/controller/LoginController.java` handling `GET /login`
@@ -63,7 +63,7 @@
 - [ ] T014 [P] [US1] Unit test for `User` aggregate root in `src/test/java/com/gohar/platform/seckit/unit/domain/UserTest.java` verifying name length ≤ 100, password length 8..128, and default `ACTIVE` status
 - [ ] T015 [P] [US1] Unit test for `RegisterUserUseCase` in `src/test/java/com/gohar/platform/seckit/unit/application/RegisterUserUseCaseTest.java` using Mockito (no Spring context) verifying successful registration, duplicate email rejection (`DuplicateEmailException`), and port delegation
 - [ ] T016 [P] [US1] MVC slice test for `RegistrationController` in `src/test/java/com/gohar/platform/seckit/slice/presentation/RegistrationControllerTest.java` using `@WebMvcTest` verifying GET `/register` view, POST `/register` validation rejections, field error binding, password wiping, and PRG redirect to `/login`
-- [ ] T017 [P] [US1] Data JPA slice test for `SpringDataUserRepository` in `src/test/java/com/gohar/platform/seckit/slice/infrastructure/SpringDataUserRepositoryTest.java` using `@DataJpaTest` verifying entity mapping, case-insensitive `existsByEmail` queries, and unique index enforcement
+- [ ] T017 [P] [US1] Data JPA slice test for `SpringDataUserRepository` in `src/test/java/com/gohar/platform/seckit/slice/infrastructure/SpringDataUserRepositoryTest.java` using `@DataJpaTest` with PostgreSQL dialect compatibility (`MODE=PostgreSQL`) verifying entity mapping, case-insensitive `existsByEmail` queries, and unique index enforcement on `LOWER(email)`
 
 ### Domain & Application Implementation for User Story 1
 
@@ -91,7 +91,7 @@
 
 ### End-to-End Integration Verification for User Story 1
 
-- [ ] T033 [US1] Implement end-to-end integration test `UserRegistrationIntegrationTest` in `src/test/java/com/gohar/platform/seckit/integration/UserRegistrationIntegrationTest.java` using `@SpringBootTest` and MockMvc verifying full form submission, DB persistence, BCrypt hash verification, duplicate email rejection, and PRG flash message (depends on T026, T029, T031, T032)
+- [ ] T033 [US1] Implement end-to-end integration test `UserRegistrationIntegrationTest` in `src/test/java/com/gohar/platform/seckit/integration/UserRegistrationIntegrationTest.java` using `@SpringBootTest` and MockMvc with PostgreSQL test database parity verifying full form submission, DB persistence, BCrypt hash verification, duplicate email rejection, PRG flash message, and rate limit exhaustion returning HTTP 429 (depends on T026, T029, T031, T032)
 
 **Checkpoint**: At this point, User Story 1 is fully functional, styled, verified, and testable end-to-end!
 
@@ -149,7 +149,7 @@ Task: "T005 Define UserRepositoryPort interface"
 Task: "T006 Define PasswordEncoderPort interface"
 Task: "T007 Implement BCryptPasswordEncoderAdapter"
 Task: "T008 Configure Spring Security"
-Task: "T009 Implement RegistrationRateLimitFilter"
+Task: "T009 Implement RegistrationRateLimitFilter with unit test"
 Task: "T011 Create login landing template"
 Task: "T012 Implement LoginController"
 ```
@@ -161,7 +161,7 @@ Task: "T013 Unit test for Email value object"
 Task: "T014 Unit test for User aggregate root"
 Task: "T015 Unit test for RegisterUserUseCase"
 Task: "T016 MVC slice test for RegistrationController"
-Task: "T017 Data JPA slice test for SpringDataUserRepository"
+Task: "T017 Data JPA slice test for SpringDataUserRepository with PostgreSQL dialect compatibility"
 ```
 
 ### Phase 3 Implementation Models & Commands (Can run in parallel)
