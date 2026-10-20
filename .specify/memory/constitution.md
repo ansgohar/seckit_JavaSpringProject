@@ -19,7 +19,7 @@ Sync Impact Report:
     - Synchronous REST for queries; asynchronous messaging for distributed side effects.
     - Clean Architecture (Domain, Application, Infrastructure, Presentation) with dedicated single-method use cases.
     - Headless API service (no UI).
-    - PostgreSQL (production) with Flyway migrations; Embedded PostgreSQL / Testcontainers for testing.
+    - PostgreSQL (production) with Flyway migrations; embedded PostgreSQL for database integration tests.
     - Stateless OAuth2 Resource Server with JWT verification and deny-by-default RBAC.
     - Strict test discipline: fast unit tests without Spring context (JUnit 5 + Mockito), slice tests, integration tests with query-count verification.
     - Java 25 idioms, no Lombok, no wildcard imports, methods ≤ 20 lines.
@@ -77,7 +77,8 @@ The microservice must adhere to production-grade distributed systems design prin
 Dependency injection and boundary data structures must adhere to strict decoupling:
 
 * **Constructor Injection Exclusively**: All Spring beans must declare dependencies via final member fields and constructor injection. Field injection (`@Autowired` on member fields) is strictly prohibited.
-* **Interface-Driven Ports**: Application and Domain layers must depend solely on interfaces (ports), never on concrete infrastructure implementations.
+* **Interface-Driven Ports**: For external dependencies, Domain and Application layers MUST use interfaces (ports), never concrete infrastructure implementations. They may use concrete domain types.
+* **Transactional Proxy Calls**: Methods annotated with `@Transactional` MUST be called through a Spring-managed proxy. If another method in the same class needs to call one, move the transactional method to a separate `@Service` and inject that service into the caller.
 * **Java Records for DTOs**: All request DTOs, response DTOs, query parameters, and value objects must be declared as immutable Java records.
 * **Entity Encapsulation**: JPA entities (`@Entity`) must NEVER be exposed in API responses or accepted in API requests under any circumstances.
 * **Explicit Boundary Mapping**: Mapping between Presentation DTOs, Application models, and Infrastructure JPA entities must be performed via explicit mapper classes or static factory methods. Reflection-based mapping frameworks (e.g., ModelMapper, Dozer) are prohibited.
@@ -98,16 +99,16 @@ Public and internal HTTP APIs must provide predictable, robust, and self-documen
 Data access must protect data integrity, prevent performance degradation, and manage schema evolution:
 
 * **Encapsulated Data Access**: Spring Data JPA repositories and entity definitions belong strictly within the Infrastructure layer.
-* **Flyway Versioned Migrations**: All schema creation, modification, and reference data must be managed exclusively through versioned Flyway migration scripts (`V{version}__{description}.sql`). Modifying or deleting an already-applied migration script is strictly forbidden.
+* **Flyway Versioned Migrations**: All schema creation, modification, and reference data must be managed exclusively through versioned Flyway migration scripts (`V{version}__{description}.sql`). Modifying or deleting an already-applied migration script is strictly forbidden. Integration tests MUST run every Flyway migration script against embedded PostgreSQL and fail if any migration cannot be applied.
 * **N+1 Query Prevention**: Lazy loading is mandatory by default. Eager loading is prohibited unless justified by profiling. Queries loading associations must use explicit fetch joins (`JOIN FETCH`) or JPA Entity Graphs (`@EntityGraph`). Query counts must be asserted in integration tests.
-* **Database Parity**: PostgreSQL is the standard production database. Embedded PostgreSQL or Testcontainers must be utilized during integration testing to guarantee schema and dialect fidelity.
-* **Caching Governance**: Caching (e.g., Spring Cache with Redis/Caffeine) may only be introduced when supported by documented, measurable performance requirements, accompanied by an explicit, automated cache invalidation strategy.
+* **Database Parity**: PostgreSQL is the standard production database. Database-related integration tests MUST use an embedded PostgreSQL package to guarantee schema and dialect fidelity.
+* **Caching Governance**: Caching (e.g., Spring Cache with Redis) may only be introduced when supported by documented, measurable performance requirements, accompanied by an explicit, automated cache invalidation strategy. Redis-backed caching and Redis operations MUST use Spring Data Redis; use `RedisTemplate` or `StringRedisTemplate` for explicit operations. Integration tests for Redis-backed caching MUST use an embedded Redis package.
 
 ### Principle VII: Zero-Trust Security & Operational Resilience
 
 Security and operational resilience must be engineered into every layer from inception:
 
-* **Stateless OAuth2 Resource Server**: Spring Security must be configured as a stateless OAuth2 Resource Server validating JWT tokens on every inbound request. Cryptographic signatures, expirations, and issuers must be verified before processing claims.
+* **Stateless OAuth2 Resource Server**: Spring Security must be configured as a stateless OAuth2 Resource Server. Protected endpoints MUST validate JWT signatures, expirations, and issuers before processing claims. Public endpoints and webhooks exempt from JWT authentication MUST be explicitly listed; webhooks MUST verify the provider's signature or another documented authentication mechanism.
 * **Deny-by-Default Authorization**: Access control is deny-by-default. Endpoints require explicit authorization rules based on authenticated scopes, roles, or authorities.
 * **HTTP Security Headers**: Spring Security must enforce standard security headers, including HTTP Strict Transport Security (HSTS), X-Content-Type-Options (nosniff), X-Frame-Options (DENY), and Content Security Policy.
 * **Sensitive Data Protection**: Passwords must be hashed using BCrypt with an approved cost factor. Sensitive values (tokens, credentials, PII, payment details) must never be written to logs, exposed in error bodies, or included in URL query parameters.
@@ -120,7 +121,7 @@ The service must provide comprehensive observability out-of-the-box for producti
 
 * **Actuator Endpoints**: Spring Boot Actuator must expose `/actuator/health`, `/actuator/info`, and `/actuator/prometheus`. Management endpoints must be secured and isolated from public business traffic.
 * **Structured JSON Logging**: Logs must be emitted to standard output in structured JSON format using SLF4J and Logback (configured with `logstash-logback-encoder`). Direct calls to `System.out.println()` and `System.err.println()` are strictly banned.
-* **Distributed Tracing**: Inbound and outbound requests must propagate W3C Trace Context headers via Micrometer Tracing. Every log record at INFO level or above must include contextual MDC fields: at minimum `traceId`, `spanId`, and relevant business entity identifiers.
+* **Distributed Tracing**: HTTP requests and messages between services MUST propagate W3C Trace Context via Micrometer Tracing. Logs emitted while a trace is active MUST include `traceId` and `spanId` in MDC, plus relevant non-sensitive business identifiers when available.
 * **Metric Instrumentation**: Business-critical events, use-case invocations, and error rates must be instrumented as custom Micrometer metrics (Counters, Timers, Gauges) published to Prometheus.
 * **Log Level Hygiene**: DEBUG for fine-grained diagnostic troubleshooting, INFO for significant lifecycle and business milestones, WARN for handled anomalies or degradations, and ERROR for system failures requiring developer attention.
 
@@ -128,6 +129,7 @@ The service must provide comprehensive observability out-of-the-box for producti
 
 Testing must guarantee architectural compliance, functional correctness, and regression prevention:
 
+* **Mandatory Task Tests & Coverage**: Every task that changes production code MUST include both unit and integration tests for the changed behavior. Together, these tests MUST achieve 100% JaCoCo line and branch coverage of new or changed production code.
 * **Fast, Isolated Unit Tests**: All unit tests for Domain entities/value objects and Application use cases must be written with JUnit 5 and Mockito and MUST execute without initializing a Spring ApplicationContext.
 * **Exhaustive Use-Case Coverage**: Every Application use case must have dedicated unit tests covering the happy path, boundary edge cases, validation rejections, and domain failure scenarios.
 * **Targeted Slice Tests**: Presentation layer components must be tested using `@WebMvcTest` with mocked use cases. Repository queries, projections, and entity mappings must be tested using `@DataJpaTest`.
@@ -144,14 +146,15 @@ Testing must guarantee architectural compliance, functional correctness, and reg
 | **Framework** | Spring Boot 4.1.1 | Spring Framework 7.0.9 (transitively managed); strict autoconfiguration audit. |
 | **Build Tool** | Maven (`mvnw`) | Maven Wrapper committed; strict dependency management via Spring Boot Parent POM. |
 | **Persistence** | Spring Data JPA / Hibernate | Restricted exclusively to the Infrastructure layer; explicit fetch queries. |
-| **Database** | PostgreSQL (Production) | Embedded PostgreSQL / Testcontainers for local dev and automated tests. |
+| **Database** | PostgreSQL (Production) | Embedded PostgreSQL for database integration tests only. |
+| **Cache** | Spring Data Redis | Use `RedisTemplate` or `StringRedisTemplate` for explicit Redis operations; use embedded Redis in cache integration tests. |
 | **Migrations** | Flyway | Versioned migrations (`V{version}__{description}.sql`) only; immutability enforced. |
-| **Security** | Spring Security OAuth2 | Stateless Resource Server; JWT verification on all protected endpoints. |
+| **Security** | Spring Security OAuth2 + Keycloak | Keycloak is the identity provider; stateless Resource Server verifies JWTs on protected endpoints. |
 | **Observability** | Actuator + Micrometer | Prometheus registry for metrics; W3C distributed tracing context propagation. |
 | **Logging** | SLF4J + Logback | Structured JSON logging to stdout via `logstash-logback-encoder`. |
 | **Documentation** | OpenAPI 3.1 (Springdoc) | Generated directly from code annotations; kept in sync with every release. |
 | **Resilience** | Resilience4j | Circuit breakers, retries, and rate limiters on all external integrations. |
-| **Testing** | JUnit 5 + Mockito + AssertJ | Isolated unit tests without Spring context; slice tests and integration tests. |
+| **Testing** | JUnit 5 + Mockito + AssertJ + JaCoCo | Isolated unit tests without Spring context, slice tests, and integration tests; coverage follows Principle IX. |
 
 ---
 
@@ -160,9 +163,11 @@ Testing must guarantee architectural compliance, functional correctness, and reg
 * **Configuration Externalization**: All configuration must strictly adhere to 12-Factor App principles. Configuration that varies across environments (database credentials, client secrets, external service URLs) must be injected via environment variables or a secure secrets manager (e.g., HashiCorp Vault, AWS Secrets Manager).
 * **Profile Architecture**:
   * `application.yml`: Defines base defaults, port bindings, Actuator configurations, and common settings.
-  * `application-dev.yml`: Configured for local development with embedded PostgreSQL and developer-friendly logging.
-  * `application-test.yml`: Configured for automated build pipelines and integration test runs.
-  * `application-prod.yml`: Configured for production deployment with hardened security, pool sizing, and externalized secrets.
+  * `application-local.yml`: Configured for developer machines with PostgreSQL, local service endpoints, and developer-friendly logging.
+  * `application-dev.yml`: Configured for the AWS development environment with PostgreSQL and developer-friendly logging.
+  * `application-test.yml`: Configured for the AWS test environment. Automated integration tests use the `test` profile and connect to embedded PostgreSQL for database tests and embedded Redis for cache tests.
+  * `application-stage.yml`: Configured for the AWS staging environment with production-like integrations and externalized secrets.
+  * `application-prod.yml`: Configured for the AWS production environment with hardened security, pool sizing, and externalized secrets.
 * **Zero Secrets in VCS**: Passwords, private keys, API tokens, and production connection strings must NEVER be committed to version control under any circumstances.
 
 ---
@@ -173,10 +178,12 @@ Every feature, enhancement, and bugfix must satisfy the following automated qual
 
 1. **Clean Architecture Check**: Domain layer must have zero dependencies on Spring or Infrastructure. Presentation controllers must not contain business logic.
 2. **Clean Code & Linting Gate**: Code must be free of wildcard imports, Lombok annotations, dead code, and methods exceeding 20 lines.
-3. **Automated Test Gate**: 100% of unit tests, slice tests, and integration tests must pass. Domain and Application layers must maintain high test coverage.
+3. **Automated Test Gate**: All unit, slice, and integration tests MUST pass. Every production-code task MUST include unit and integration tests, with 100% JaCoCo line and branch coverage of new or changed production code.
 4. **Security & Vulnerability Audit**: Dependency check must report zero high or critical CVEs. No hard-coded credentials or unredacted PII in logs.
-5. **Database Migration Verification**: All Flyway migrations must be forward-compatible, non-destructive, and successfully verified against a clean test database.
+5. **Database Migration Verification**: All Flyway migrations MUST be forward-compatible and non-destructive. Integration tests MUST apply every migration to a clean embedded PostgreSQL database successfully.
 6. **OpenAPI Documentation Sync**: All new and modified endpoints must include complete OpenAPI 3.1 annotations.
+7. **SonarQube Quality Gate**: Every pull request MUST pass the configured SonarQube quality gate before merge.
+8. **Sonar Refactoring Verification**: Before each small Sonar refactoring, relevant unit and integration tests MUST be in place and pass. The same tests MUST pass again after the edit. Commit each refactoring separately with the Sonar rule ID and a short description in the commit message.
 
 ---
 
@@ -190,4 +197,4 @@ Every feature, enhancement, and bugfix must satisfy the following automated qual
   * **PATCH**: Phrasing clarifications, typo corrections, reference updates, and non-semantic refinements.
 * **Compliance Auditing**: Every Pull Request must include a Constitution Compliance check verifying that new code strictly complies with all principles defined herein.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-19 | **Last Amended**: 2026-10-19
+**Version**: 2.0.0 | **Ratified**: 2026-10-19 | **Last Amended**: 2026-10-20
